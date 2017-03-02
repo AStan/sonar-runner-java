@@ -1,11 +1,11 @@
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Repository;
 
@@ -33,8 +33,7 @@ public class SonarRunner {
     Repository repository;
     Git git;
 
-    HashMap projectLog;
-    //Multimap<String, String> revisions; //Multimap containing KEY=nrOfRevision/revisionDate VALUES (rev1
+    Map<String, String> projectLog; //Map containing KEY=nrOfRevision/revisionDate VALUES
     //int nrOfRevisions;
 
 
@@ -58,11 +57,45 @@ public class SonarRunner {
     public void init(){
         this.repositoryURL = "https://github.com/apache/lucene-solr";
         this.sonarRunnerHome = "/usr/SQuaSME/sonar-scanner-2.8/bin";
-        this.projectName = "";
+        this.projectName = "lucene-solr";
         this.repositoryType = RepositoryType.git;
+        //
+        this.projectLog = initMap();
     }
 
-     /**
+    public String convertToShortTime(String rawtime){
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        String convertedTime = "";
+        try {
+
+            Date date = formatter.parse(rawtime);
+            System.out.println(date);
+            System.out.println(formatter.format(date));
+            convertedTime = date.toString();
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        return convertedTime;
+
+    }
+
+
+    public void /*Map<String, String>*/ convertTime(){
+
+        for(Map.Entry<String,String> entry : this.projectLog.entrySet()) {
+            String[] key = entry.getKey().split(" ");
+            String converted = convertToShortTime(key[0]);
+            System.out.println(converted);
+            //String value = entry.getValue();
+            //System.out.println(key + " => " + value);
+        }
+
+        //return this.projectLog;
+    }
+
+    /**
      * List all revisions, and export to file projectname.svn
      */
     public void updateRevision(){
@@ -74,19 +107,38 @@ public class SonarRunner {
         //this.nrOfRevisions = countRevisions();
     }
 
-    public HashMap initHashMap(){
+    public Map<String, String> initMap(){
 
         HashMap<String, String> hashMap = new HashMap<>();
 
-        //temporary code
-        String fileName = "./tmp/commitsraw.txt";
+        ////temporary code
+        //String fileName = "./tmp/commitsraw.txt";
+        String fileName = "./tmp/commitsiso.txt";
         String line;
 
         try {
             FileReader fileReader = new FileReader(fileName);
             BufferedReader bufferedReader = new BufferedReader(fileReader);
+            /*
             while((line = bufferedReader.readLine()) != null) {
-                System.out.println(line);
+                String[] str = line.split(" ");
+                //System.out.println(str[0]+" "+str[2]);
+                hashMap.put(str[0]+" "+str[1],str[2]);
+            }*/
+
+            /* //testing differences in timezones
+            while((line = bufferedReader.readLine()) != null) {
+                String[] str = line.split(" ");
+                //System.out.println(str[0]+" "+str[2]);
+                if(!("+0000".equals(str[2]))){
+                    hashMap.put(str[0]+" "+str[1]+" "+str[2],str[3]);
+                }
+
+            }*/
+            while((line = bufferedReader.readLine()) != null) {
+                String[] str = line.split(" ");
+                //System.out.println(str[0]+" "+str[2]);
+                hashMap.put(str[0]+" "+str[1]+" "+str[2],str[3]);
             }
             bufferedReader.close();
         }
@@ -98,10 +150,9 @@ public class SonarRunner {
             // Or ex.printStackTrace();
         }
 
+        Map<String, String> sortedMap = new TreeMap<>(hashMap);
 
-        //git.log();
-
-        return hashMap;
+        return sortedMap;
     }
 
     /**

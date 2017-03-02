@@ -14,7 +14,8 @@ public class SonarRunnerTest {
         System.out.println(sr.repositoryType);
         System.out.println(sr.sonarRunnerHome);
 
-        sr.initHashMap();
+        sr.initMap();
+        //sr.convertTime();
 
     }
 }
