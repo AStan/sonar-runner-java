@@ -14,8 +14,15 @@ public class SonarRunnerTest {
         System.out.println(sr.repositoryType);
         System.out.println(sr.sonarRunnerHome);
 
-        sr.initMap();
-        //sr.convertTime();
+        sr.initEntries();
+        /*System.out.println(sr.projectLog.get(26816));
+        System.out.println(sr.projectLog.get(26817));
+        System.out.println(sr.projectLog.get(26818));
+        String time = sr.convertTime();
+        System.out.println(time);*/
+        sr.executeAnalysis();
+
+
 
     }
 }

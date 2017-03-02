@@ -4,6 +4,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import org.eclipse.jgit.api.Git;
@@ -32,9 +35,7 @@ public class SonarRunner {
     }
     Repository repository;
     Git git;
-
-    Map<String, String> projectLog; //Map containing KEY=nrOfRevision/revisionDate VALUES
-    //int nrOfRevisions;
+    ArrayList<String> projectLog; //entries of the "git log", sorted chronologically
 
 
 
@@ -60,7 +61,7 @@ public class SonarRunner {
         this.projectName = "lucene-solr";
         this.repositoryType = RepositoryType.git;
         //
-        this.projectLog = initMap();
+        this.projectLog = initEntries();
     }
 
     public String convertToShortTime(String rawtime){
@@ -82,17 +83,17 @@ public class SonarRunner {
     }
 
 
-    public void /*Map<String, String>*/ convertTime(){
 
-        for(Map.Entry<String,String> entry : this.projectLog.entrySet()) {
-            String[] key = entry.getKey().split(" ");
-            String converted = convertToShortTime(key[0]);
-            System.out.println(converted);
-            //String value = entry.getValue();
-            //System.out.println(key + " => " + value);
-        }
+    public String convertTime(){
 
-        //return this.projectLog;
+
+
+        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(1481558211, 0, ZoneOffset.UTC);
+        //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
+        String formattedDate = dateTime.format(formatter);
+        return formattedDate;
+        //System.out.println(formattedDate); // Tuesday,November 1,2011 12:00,AM
     }
 
     /**
@@ -107,38 +108,23 @@ public class SonarRunner {
         //this.nrOfRevisions = countRevisions();
     }
 
-    public Map<String, String> initMap(){
+    public ArrayList<String> initEntries(){
 
-        HashMap<String, String> hashMap = new HashMap<>();
+        ArrayList<String> entries = new ArrayList();
 
         ////temporary code
-        //String fileName = "./tmp/commitsraw.txt";
-        String fileName = "./tmp/commitsiso.txt";
+        String fileName = "./tmp/commitsraw.txt";
         String line;
 
         try {
             FileReader fileReader = new FileReader(fileName);
             BufferedReader bufferedReader = new BufferedReader(fileReader);
-            /*
-            while((line = bufferedReader.readLine()) != null) {
-                String[] str = line.split(" ");
-                //System.out.println(str[0]+" "+str[2]);
-                hashMap.put(str[0]+" "+str[1],str[2]);
-            }*/
 
-            /* //testing differences in timezones
             while((line = bufferedReader.readLine()) != null) {
-                String[] str = line.split(" ");
+                entries.add(line);
+                //String[] str = line.split(" ");
                 //System.out.println(str[0]+" "+str[2]);
-                if(!("+0000".equals(str[2]))){
-                    hashMap.put(str[0]+" "+str[1]+" "+str[2],str[3]);
-                }
-
-            }*/
-            while((line = bufferedReader.readLine()) != null) {
-                String[] str = line.split(" ");
-                //System.out.println(str[0]+" "+str[2]);
-                hashMap.put(str[0]+" "+str[1]+" "+str[2],str[3]);
+                //multimap.put(str[0]+" "+str[1]+" "+str[2],str[3]);
             }
             bufferedReader.close();
         }
@@ -150,9 +136,48 @@ public class SonarRunner {
             // Or ex.printStackTrace();
         }
 
-        Map<String, String> sortedMap = new TreeMap<>(hashMap);
+        //sort the ArrayList
+        Collections.sort(entries, new Comparator<String>() {
+            @Override
+            public int compare(String s1, String s2) {
+                return s1.compareToIgnoreCase(s2);
+            }
+        });
 
-        return sortedMap;
+        return entries;
+    }
+
+    public void updateGit(String hash){
+        /*
+        git stash save
+        git checkout -f HASHCODE
+        git stash pop
+         */
+
+    }
+
+    public void executeAnalysis(){
+        for (String listitem : projectLog) {
+            String[] str = listitem.split(" ");
+            updateGit(str[1]);
+            executeSonarQube(str[0],str[1]);
+        }
+    }
+
+    private void executeSonarQube(String date, String hash) {
+        /*
+        launch SonarQube
+
+        #$SONAR_RUNNER_HOME/sonar-runner -Dproject.settings=$project.properties -Dsonar.projectDate=$revisionDate
+         */
+
+        String myCommand = this.sonarRunnerHome+" -Dproject.settings="+this.projectName+".properties -Dsonar.projectDate="+date;
+        System.out.println(myCommand);
+        /*try {
+            Runtime.getRuntime().exec(myCommand);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }*/
     }
 
     /**
