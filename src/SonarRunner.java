@@ -64,7 +64,7 @@ public class SonarRunner {
         this.projectLog = initEntries();
     }
 
-    public String convertToShortTime(String rawtime){
+/*    public String convertToShortTime(String rawtime){
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
         String convertedTime = "";
         try {
@@ -80,15 +80,18 @@ public class SonarRunner {
 
         return convertedTime;
 
-    }
+    }*/
 
 
 
-    public String convertTime(){
+    public String convertTime(String time){
+        //TODO change ZoneOffset to the proper timezone ?
 
+        Long longTime = Long.parseLong(time);
+        //TimeZone timeZone = TimeZone.getTimeZone("Europe/Rome");
 
-
-        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(1481558211, 0, ZoneOffset.UTC);
+        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(longTime, 0, ZoneOffset.UTC);
+        //LocalDateTime dateTime = LocalDateTime.ofEpochSecond(1481558211, 0, ZoneOffset.UTC);
         //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
         String formattedDate = dateTime.format(formatter);
@@ -145,6 +148,21 @@ public class SonarRunner {
         });
 
         return entries;
+    }
+
+    public void convertTimeOfEntries(){
+        ArrayList<String> convertedEntries = new ArrayList();
+        int lngth = this.projectLog.size();
+        String convertedTime = "";
+
+        for(int i=0;i<lngth;i++){
+            String[] splt = this.projectLog.get(i).split(" ");
+            convertedTime = convertTime(splt[0]);
+            convertedEntries.add(convertedTime+" "+splt[2]);
+        }
+        this.projectLog.clear();
+        this.projectLog = convertedEntries;
+
     }
 
     public void updateGit(String hash){
