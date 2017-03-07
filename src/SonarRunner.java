@@ -1,16 +1,16 @@
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.StashCreateCommand;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 /**
  * Created by astan on 3/1/2017.
@@ -46,11 +46,20 @@ public class SonarRunner {
     public SonarRunner(){
         init();
         //repository checkout
-        //list revisions (per avere l'elenco - fare il sorting mentre leggo) MULTIMAP
-        //updateRevision(); per ogni revision nella multimap (ordinata giá), System.out.println("Revision"+revisionDate+revisionHash);
+        //list revisions (per avere l'elenco - fare il sorting mentre leggo)
+        //updateRevision(); per ogni revision (giá ordinata), System.out.println("Revision"+revisionDate+revisionHash);
         //finito questo, passo alla revision successiva
     }
 
+/*
+    public void setGitRepo() throws IOException {
+        FileRepositoryBuilder builder = new FileRepositoryBuilder();
+        Repository repository = builder.setGitDir(new File("./tmp/lucene-solr"))///my/git/directory
+                .readEnvironment() // scan environment GIT_* variables
+                .findGitDir() // scan up the file system tree
+                .build();
+    }
+*/
 
     /**
      *
@@ -63,25 +72,6 @@ public class SonarRunner {
         //
         this.projectLog = initEntries();
     }
-
-/*    public String convertToShortTime(String rawtime){
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-        String convertedTime = "";
-        try {
-
-            Date date = formatter.parse(rawtime);
-            System.out.println(date);
-            System.out.println(formatter.format(date));
-            convertedTime = date.toString();
-
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-
-        return convertedTime;
-
-    }*/
-
 
 
     public String convertTime(String time){
@@ -116,7 +106,8 @@ public class SonarRunner {
         ArrayList<String> entries = new ArrayList();
 
         ////temporary code
-        String fileName = "./tmp/commitsraw.txt";
+        //String fileName = "./tmp/commitsraw.txt";
+        String fileName = "./tmp/commits2.txt";
         String line;
 
         try {
@@ -125,9 +116,6 @@ public class SonarRunner {
 
             while((line = bufferedReader.readLine()) != null) {
                 entries.add(line);
-                //String[] str = line.split(" ");
-                //System.out.println(str[0]+" "+str[2]);
-                //multimap.put(str[0]+" "+str[1]+" "+str[2],str[3]);
             }
             bufferedReader.close();
         }
@@ -139,13 +127,14 @@ public class SonarRunner {
             // Or ex.printStackTrace();
         }
 
-        //sort the ArrayList
+        //NO NEED TO SORT ANYMORE
+/*        //sort the ArrayList
         Collections.sort(entries, new Comparator<String>() {
             @Override
             public int compare(String s1, String s2) {
                 return s1.compareToIgnoreCase(s2);
             }
-        });
+        });*/
 
         return entries;
     }
@@ -165,23 +154,54 @@ public class SonarRunner {
 
     }
 
-    public void updateGit(String hash){
+    public void updateGit(String hash) throws IOException, GitAPIException {
+
+
+        // Open the existing repository
+        try (Repository repository = new FileRepositoryBuilder().setGitDir(new File("./tmp/lucene-solr")).build()){
+
+            try (Git git = new Git(repository)){
+
+                RevCommit stash = git.stashCreate().call();
+                git.checkout().setForce(true);
+                git.stashDrop();
+
+            }
+        }
+
         /*
         git stash save
         git checkout -f HASHCODE
         git stash pop
          */
 
+
+        /*
+        /// MOVE OUTSIDE
+        git.stashCreate();
+        git.checkout();
+        git.apply("git stash save");
+        git.stashDrop();*/
+
+
     }
 
+    /**
+     * Runs the analysis with SonarQube
+     */
     public void executeAnalysis(){
         for (String listitem : projectLog) {
             String[] str = listitem.split(" ");
-            updateGit(str[1]);
+            //updateGit(str[1]);
             executeSonarQube(str[0],str[1]);
         }
     }
 
+    /**
+     * Runs SonarQube
+     * @param date is the commit date
+     * @param hash is the SHA of the commit
+     */
     private void executeSonarQube(String date, String hash) {
         /*
         launch SonarQube
@@ -198,18 +218,6 @@ public class SonarRunner {
         }*/
     }
 
-    /**
-     *
-     * @return nr of revisions
-     */
-    public int countRevisions(){
-        int revisions = 0;
-        /*
-        - read .svn file
-        - count revisions
-         */
-        return revisions;
-    }
 
     /**
      * Runs Sonar Scanner on a selected project

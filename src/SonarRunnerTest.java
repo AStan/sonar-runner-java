@@ -1,13 +1,11 @@
 import org.junit.*;
 
-import java.util.ArrayList;
-
 /**
  * Created by astan on 3/2/2017.
  */
 public class SonarRunnerTest {
 
-    @Test
+    @Ignore
     public void testInit(){
         SonarRunner sr = new SonarRunner();
 
@@ -24,11 +22,20 @@ public class SonarRunnerTest {
         //String time = sr.convertTime();
         //System.out.println(time);
         sr.convertTimeOfEntries();
+        sr.executeAnalysis();
+    }
+
+    @Test
+    public void testNew(){
+        SonarRunner sr = new SonarRunner();
+
+        System.out.println(sr.projectName);
+        System.out.println(sr.repositoryURL);
+        System.out.println(sr.repositoryType);
+        System.out.println(sr.sonarRunnerHome);
 
 
         sr.executeAnalysis();
-
-
 
     }
 }
